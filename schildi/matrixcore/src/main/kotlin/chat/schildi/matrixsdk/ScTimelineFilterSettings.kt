@@ -5,6 +5,7 @@ data class ScTimelineFilterSettings(
     val showRedactions: Boolean = true,
     val preferHideThreadedEvents: Boolean? = null,
     val showMembershipEventsInPublicRooms: Boolean = false,
+    val hideMembershipEvents: Boolean = false,
 ) {
     companion object {
         val IncludeAll = ScTimelineFilterSettings(
@@ -12,6 +13,7 @@ data class ScTimelineFilterSettings(
             showRedactions = true,
             preferHideThreadedEvents = false,
             showMembershipEventsInPublicRooms = true,
+            hideMembershipEvents = false,
         )
     }
 }

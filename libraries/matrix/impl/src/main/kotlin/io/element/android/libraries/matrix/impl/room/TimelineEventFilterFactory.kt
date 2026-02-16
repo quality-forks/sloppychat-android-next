@@ -20,6 +20,7 @@ import uniffi.ruma_events.TimelineEventType
 interface TimelineEventFilterFactory {
     fun create(
         hideMembershipInPublicChats: Boolean, // SC
+        hideMembershipEvents: Boolean, // SC
         joinRule: JoinRule?,
         isEncrypted: Boolean?,
         excludedStateTypes: List<StateEventType>
@@ -30,6 +31,7 @@ interface TimelineEventFilterFactory {
 class RustTimelineEventFilterFactory : TimelineEventFilterFactory {
     override fun create(
         hideMembershipInPublicChats: Boolean, // SC
+        hideMembershipEvents: Boolean, // SC
         joinRule: JoinRule?,
         isEncrypted: Boolean?,
         excludedStateTypes: List<StateEventType>
@@ -39,7 +41,12 @@ class RustTimelineEventFilterFactory : TimelineEventFilterFactory {
         }
         // If the room is publicly joinable and not encrypted, we also want to exclude membership changes and profile changes,
         // as they will pollute the timelines since they're quite common and not add much value.
-        val excludedMembershipChanges = if (joinRule !is JoinRule.Invite && isEncrypted == false && hideMembershipInPublicChats) {
+        val excludedMembershipChanges = if (hideMembershipEvents) { // SC: hide all membership and profile changes everywhere
+            listOf(
+                TimelineEventCondition.MembershipChange(MembershipChangeFilter.ANY),
+                TimelineEventCondition.ProfileChange,
+            )
+        } else if (joinRule !is JoinRule.Invite && isEncrypted == false && hideMembershipInPublicChats) {
             listOf(
                 TimelineEventCondition.MembershipChange(MembershipChangeFilter.JOIN),
                 TimelineEventCondition.MembershipChange(MembershipChangeFilter.LEAVE),

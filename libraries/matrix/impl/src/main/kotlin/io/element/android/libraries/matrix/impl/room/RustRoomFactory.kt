@@ -133,6 +133,7 @@ class RustRoomFactory(
                         }
                         val timelineFilter = timelineEventFilterFactory.create(
                             hideMembershipInPublicChats = !scTimelineFilterSettings.showMembershipEventsInPublicRooms,
+                            hideMembershipEvents = scTimelineFilterSettings.hideMembershipEvents, // SC
                             joinRule = roomInfo.joinRule?.map(),
                             isEncrypted = isEncrypted,
                             excludedStateTypes = TimelineConfig.excludedEvents,

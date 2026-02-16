@@ -231,6 +231,7 @@ class JoinedRustRoom(
             is CreateTimelineParams.Threaded -> {
                 RustTimelineEventFilterFactory().create(
                     hideMembershipInPublicChats = !scTimelineFilterSettings.showMembershipEventsInPublicRooms,
+                    hideMembershipEvents = scTimelineFilterSettings.hideMembershipEvents, // SC
                     joinRule = roomInfoFlow.value.joinRule,
                     isEncrypted = roomInfoFlow.value.isEncrypted,
                     excludedStateTypes = TimelineConfig.excludedEvents,

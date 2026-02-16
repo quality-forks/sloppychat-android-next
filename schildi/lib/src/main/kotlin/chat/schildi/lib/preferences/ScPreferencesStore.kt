@@ -239,6 +239,7 @@ inline fun lookupScTimelineFilterSettings(lookup: (ScPref<*>) -> Any?) = ScTimel
     showHiddenEvents = ScPrefs.VIEW_HIDDEN_EVENTS.safeLookup(lookup),
     showRedactions = ScPrefs.VIEW_REDACTIONS.safeLookup(lookup),
     showMembershipEventsInPublicRooms = ScPrefs.VIEW_MEMBERSHIP_EVENTS_IN_PUBLIC_ROOMS.safeLookup(lookup),
+    hideMembershipEvents = ScPrefs.HIDE_MEMBERSHIP_EVENTS.safeLookup(lookup),
 )
 
 @Composable
