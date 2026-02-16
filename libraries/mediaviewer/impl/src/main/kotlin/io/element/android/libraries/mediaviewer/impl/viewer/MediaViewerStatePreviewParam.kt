@@ -375,6 +375,7 @@ fun aMediaViewerPageData(
 fun aMediaViewerState(
     listData: List<MediaViewerPageData> = listOf(aMediaViewerPageData()),
     currentIndex: Int = 0,
+    reverseLayout: Boolean = false,
     canShowInfo: Boolean = true,
     mediaBottomSheetState: MediaBottomSheetState = MediaBottomSheetState.Hidden,
     currentUserId: UserId? = null,
@@ -383,6 +384,7 @@ fun aMediaViewerState(
     initiallySelectedEventId = EventId("\$a:b"),
     listData = listData.toImmutableList(),
     currentIndex = currentIndex,
+    reverseLayout = reverseLayout,
     snackbarMessage = null,
     canShowInfo = canShowInfo,
     mediaBottomSheetState = mediaBottomSheetState,

@@ -12,6 +12,7 @@ package io.element.android.libraries.mediaviewer.impl.viewer
 
 import android.net.Uri
 import app.cash.turbine.ReceiveTurbine
+import chat.schildi.lib.preferences.PreviewScPreferencesStore
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.messages.api.timeline.HtmlConverterProvider
 import io.element.android.features.messages.api.timeline.TextPillificator
@@ -1029,6 +1030,7 @@ internal fun TestScope.createMediaViewerPresenter(
         textPillificator = textPillificator,
         htmlMessageParser = FakeHtmlMessageParser(parseResult = { DocumentNode(persistentListOf()) }),
         featureFlagService = featureFlagService,
+        scPreferencesStore = PreviewScPreferencesStore,
     )
 }
 
