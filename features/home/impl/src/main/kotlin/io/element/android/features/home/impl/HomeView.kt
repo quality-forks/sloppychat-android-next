@@ -155,6 +155,7 @@ fun HomeView(
             onCreateSpaceClick = { if (firstThrottler.canHandle()) onCreateSpaceClick() },
             onMenuActionClick = onMenuActionClick,
             onSwitchToAccount = onSwitchToAccount,
+            onMarkAllAsRead = { state.eventSink(RoomListEvent.MarkAllAsRead) },
         )
 
         if (state.globalSearchState.isEnabled) {
@@ -177,7 +178,6 @@ fun HomeView(
                     .background(ElementTheme.colors.bgCanvasDefault)
             )
         }
-
         acceptDeclineInviteView()
     }
 }
@@ -193,6 +193,7 @@ private fun HomeScaffold(
     onCreateSpaceClick: () -> Unit,
     onMenuActionClick: (RoomListMenuAction) -> Unit,
     onSwitchToAccount: (SessionId) -> Unit,
+    onMarkAllAsRead: () -> Unit, // SC
     modifier: Modifier = Modifier,
 ) {
     fun onRoomClick(room: RoomListRoomSummary) {
@@ -269,6 +270,7 @@ private fun HomeScaffold(
                     }
                 },
                 onMenuActionClick = onMenuActionClick,
+                onMarkAllAsRead = onMarkAllAsRead, // SC
                 onOpenSettings = onOpenSettings,
                 onAccountSwitch = { sessionId ->
                     // The user has switched account by swiping their avatar, so they know the gesture.

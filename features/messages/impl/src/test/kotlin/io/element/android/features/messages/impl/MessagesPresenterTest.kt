@@ -10,6 +10,8 @@
 
 package io.element.android.features.messages.impl
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.Lifecycle
 import chat.schildi.imagepacks.ImagePackRepository
 import chat.schildi.imagepacks.ImagePackService
@@ -35,6 +37,7 @@ import io.element.android.features.messages.impl.timeline.FakeMarkAsFullyRead
 import io.element.android.features.messages.impl.timeline.MarkAsFullyRead
 import io.element.android.features.messages.impl.timeline.SelectionAction
 import io.element.android.features.messages.impl.timeline.SelectionState
+import io.element.android.features.messages.impl.timeline.ScReadState
 import io.element.android.features.messages.impl.timeline.TimelineController
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.TimelineState
@@ -1404,7 +1407,7 @@ class MessagesPresenterTest {
         )
         presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
-            initialState.eventSink(MessagesEvent.MarkAsFullyReadAndExit)
+            initialState.eventSink(MessagesEvent.MarkAsFullyReadAndExit(aScReadState(readMarkerToSet = AN_EVENT_ID)))
 
             runCurrent()
 
@@ -1428,7 +1431,7 @@ class MessagesPresenterTest {
         )
         presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
-            initialState.eventSink(MessagesEvent.MarkAsFullyReadAndExit)
+            initialState.eventSink(MessagesEvent.MarkAsFullyReadAndExit(aScReadState(readMarkerToSet = AN_EVENT_ID)))
 
             runCurrent()
 
@@ -1653,4 +1656,12 @@ class MessagesPresenterTest {
             sessionCoroutineScope = backgroundScope,
         )
     }
+
+    private fun aScReadState(readMarkerToSet: EventId? = null) = ScReadState(
+        lastReadMarkerIndex = mutableIntStateOf(-1),
+        lastReadMarkerId = mutableStateOf(null),
+        readMarkerToSet = mutableStateOf(readMarkerToSet),
+        sawUnreadLine = mutableStateOf(true),
+        fullyReadEventId = mutableStateOf(null),
+    )
 }
