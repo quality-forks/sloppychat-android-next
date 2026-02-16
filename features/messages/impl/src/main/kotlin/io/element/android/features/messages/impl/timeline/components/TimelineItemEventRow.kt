@@ -12,8 +12,10 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +49,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.platform.ViewConfiguration
@@ -70,6 +74,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.constraintlayout.compose.ConstrainScope
 import androidx.constraintlayout.compose.ConstraintLayout
+import chat.schildi.lib.preferences.ScPrefs
+import chat.schildi.lib.preferences.value
 import chat.schildi.theme.ScTheme
 import chat.schildi.theme.extensions.scOrElse
 import io.element.android.compound.theme.ElementTheme
@@ -155,6 +161,7 @@ import io.element.android.wysiwyg.link.Link
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sign
@@ -270,17 +277,24 @@ fun TimelineItemEventRow(
         } else {
             Spacer(modifier = Modifier.height(2.dp))
         }
+        val swipeToReplyMode = ScPrefs.SWIPE_TO_REPLY.value() // SC
+        val canReply = timelineRoomInfo.userHasPermissionToSendMessage && event.canBeRepliedTo && swipeToReplyMode != ScPrefs.SwipeToReplyMode.OFF // SC
         if (canReply) {
-            val state: SwipeableActionsState = rememberSwipeableActionsState()
+            val state: SwipeableActionsState = rememberSwipeableActionsState(allowNegative = true) // SC: always left swipe
+            val maxOffset = 90.dp.toPx()
+            val rawOffset = state.offset.floatValue
+            val clampedOffset = min(rawOffset, 0f) // SC: constrain to left (negative) direction
+            val offset = clampedOffset.sign * min(abs(clampedOffset), maxOffset)
             val swipeThresholdPx = 40.dp.toPx()
-            SwipeSensitivity(3f) {
+            SwipeSensitivity(1.5f) { // SC: reduced from 3f for more responsive swipe
                 Box(
                     Modifier
                         .fillMaxWidth()
                         .offset(selectionContentOffset)
                 ) {
                     Row(modifier = Modifier.matchParentSize()) {
-                        ReplySwipeIndicator({ state.offset.floatValue / 120 })
+                        Spacer(modifier = Modifier.weight(1f))
+                        ReplySwipeIndicator({ abs(offset) / 120 }, reverseDirection = true) // SC: always left swipe indicator
                     }
                     TimelineItemEventRowContent(
                         selectionData = selectionData,
@@ -298,20 +312,45 @@ fun TimelineItemEventRow(
                         onReactionLongClick = { emoji -> onReactionLongClick(emoji, event) },
                         onMoreReactionsClick = { onMoreReactionsClick(event) },
                         modifier = Modifier
-                            .absoluteOffset { IntOffset(x = state.offset.floatValue.roundToInt(), y = 0) }
-                            .draggable(
-                                orientation = Orientation.Horizontal,
-                                enabled = !state.isResettingOnRelease && !isSelectionToggle,
-                                onDragStopped = {
-                                    coroutineScope.launch {
-                                        if (abs(state.offset.floatValue) > swipeThresholdPx) {
-                                            onSwipeToReply()
+                            .absoluteOffset { IntOffset(x = offset.roundToInt(), y = 0) }
+                            .pointerInput(isSelectionToggle) {
+                                // SC: Direction-aware drag — only claim left (negative) swipes
+                                // for swipe-to-reply. Right swipes pass through to the drawer.
+                                val swipeThreshold = swipeThresholdPx
+                                awaitEachGesture {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    if (state.isResettingOnRelease || isSelectionToggle) return@awaitEachGesture
+                                    var overSlop = 0f
+                                    val drag = awaitHorizontalTouchSlopOrCancellation(down.id) { change, over ->
+                                        overSlop = over
+                                        if (over < 0f) {
+                                            change.consume()
                                         }
-                                        state.resetOffset()
                                     }
-                                },
-                                state = state.draggableState,
-                            ),
+                                    // Right-swipes belong to the drawer/pager — don't enter horizontalDrag
+                                    // unless the slop crossed in the leftward (negative) direction.
+                                    if (drag != null && overSlop < 0f) {
+                                        state.draggableState.dispatchRawDelta(overSlop)
+                                        horizontalDrag(drag.id) { change ->
+                                            // Only consume continuing leftward motion; let rightward
+                                            // dispatch through to the parent so the drawer can claim it.
+                                            val dx = change.positionChange().x
+                                            if (state.offset.floatValue + dx <= 0f) {
+                                                state.draggableState.dispatchRawDelta(dx)
+                                                change.consume()
+                                            }
+                                        }
+                                        val curOffset = state.offset.floatValue
+                                        val clamped = min(curOffset, 0f)
+                                        val finalOffset = clamped.sign * min(abs(clamped), maxOffset)
+                                        val crossed = abs(finalOffset) > swipeThreshold
+                                        coroutineScope.launch {
+                                            if (crossed) onSwipeToReply()
+                                            state.resetOffset()
+                                        }
+                                    }
+                                }
+                            },
                         eventSink = eventSink,
                         eventContentView = eventContentView,
                     )
