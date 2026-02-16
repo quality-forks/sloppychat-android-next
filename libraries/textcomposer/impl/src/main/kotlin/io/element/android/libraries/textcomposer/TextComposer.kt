@@ -248,7 +248,9 @@ fun TextComposer(
     }
 
     @Composable
-    fun rememberEndButtonParams() = remember(
+    fun rememberEndButtonParams(): EndButtonParams? {
+        val hideVoiceMessageButton = ScPrefs.HIDE_VOICE_MESSAGE_BUTTON.value()
+        return remember(hideVoiceMessageButton,
         composerMode.isEditing,
         voiceMessageState.endButtonKey(),
         canSendTextMessage,
@@ -270,7 +272,7 @@ fun TextComposer(
             )
             !canSendTextMessage ->
                 when (voiceMessageState) {
-                    VoiceMessageState.Idle -> EndButtonParams(
+                    VoiceMessageState.Idle -> if (hideVoiceMessageButton) null else EndButtonParams(
                         endButtonContentDescriptionResId = CommonStrings.a11y_voice_message_record,
                         endButtonClick = {
                             performHapticFeedback()
@@ -332,6 +334,8 @@ fun TextComposer(
                 },
             )
         }
+    }
+
     }
 
     @Composable
@@ -469,7 +473,7 @@ private fun StandardLayout(
     isRoomEncrypted: Boolean?,
     textInput: @Composable () -> Unit,
     voiceRecording: @Composable () -> Unit,
-    endButtonParams: EndButtonParams,
+    endButtonParams: EndButtonParams?,
     onAddAttachment: () -> Unit,
     onDeleteVoiceMessage: () -> Unit,
     onVoiceRecorderEvent: (VoiceMessageRecorderEvent) -> Unit,
@@ -571,18 +575,20 @@ private fun StandardLayout(
                 }
             }
             // To avoid loosing keyboard focus, the IconButton has to be defined here and has to be always enabled.
-            val endButtonContentDescription = stringResource(endButtonParams.endButtonContentDescriptionResId)
-            IconButton(
-                modifier = Modifier
-                    .padding(bottom = 5.dp, top = 5.dp, end = 6.dp, start = 6.dp)
-                    .size(48.dp)
-                    .clearAndSetSemantics {
-                        contentDescription = endButtonContentDescription
-                        onClick(null, null)
-                    },
-                onClick = endButtonParams.endButtonClick,
-                content = endButtonParams.endButtonContent,
-            )
+            if (endButtonParams != null) { // SC: hide when pref is enabled
+                val endButtonContentDescription = stringResource(endButtonParams.endButtonContentDescriptionResId)
+                IconButton(
+                    modifier = Modifier
+                        .padding(bottom = 5.dp, top = 5.dp, end = 6.dp, start = 6.dp)
+                        .size(48.dp)
+                        .clearAndSetSemantics {
+                            contentDescription = endButtonContentDescription
+                            onClick(null, null)
+                        },
+                    onClick = endButtonParams.endButtonClick,
+                    content = endButtonParams.endButtonContent,
+                )
+            }
         }
     }
 }
