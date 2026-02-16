@@ -36,7 +36,9 @@ class RustTimelineEventFilterFactory : TimelineEventFilterFactory {
         isEncrypted: Boolean?,
         excludedStateTypes: List<StateEventType>
     ): TimelineEventFilter? {
-        val excludedEventTypes = excludedStateTypes.map { stateEventType ->
+        // SC: also drop the remaining state events that would only render as generic state rows.
+        // This filter only applies while "view hidden events" is off (see scTimelineFilter).
+        val excludedEventTypes = (excludedStateTypes + scGenericStateEventTypes).distinct().map { stateEventType ->
             TimelineEventCondition.EventType(TimelineEventType.fromState(stateEventType))
         }
         // If the room is publicly joinable and not encrypted, we also want to exclude membership changes and profile changes,
@@ -65,3 +67,19 @@ class RustTimelineEventFilterFactory : TimelineEventFilterFactory {
         }
     }
 }
+
+// SC: state events rendered as generic TimelineItemStateEventContent rows
+private val scGenericStateEventTypes = listOf(
+    StateEventType.RoomAvatar,
+    StateEventType.RoomCreate,
+    StateEventType.RoomEncryption,
+    StateEventType.RoomName,
+    StateEventType.RoomPinnedEvents,
+    StateEventType.RoomThirdPartyInvite,
+    StateEventType.RoomTopic,
+    StateEventType.MemberHints,
+    StateEventType.RoomImagePack,
+    StateEventType.RoomLanguage,
+    StateEventType.RoomPolicy,
+    StateEventType.RoomRetention,
+)
