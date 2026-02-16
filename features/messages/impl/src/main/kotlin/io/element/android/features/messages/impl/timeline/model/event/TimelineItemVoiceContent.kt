@@ -21,7 +21,7 @@ data class TimelineItemVoiceContent(
     override val fileSize: Long?,
     override val caption: String?,
     override val formattedCaption: CharSequence?,
-    override val formattedCaptionSc: MatrixBodyParseResult?,
+    override val formattedCaptionSc: MatrixBodyParseResult? = null,
     override val htmlCaption: String? = null,
     override val captionTree: DocumentNode? = null,
     override val isEdited: Boolean,

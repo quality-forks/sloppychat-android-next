@@ -503,6 +503,14 @@ fun MessagesView(
 
     customReactionBottomSheet()
 
+    // SC: Sticker picker bottom sheet
+    if (state.showStickerPicker) {
+        io.element.android.features.messages.impl.sticker.StickerPickerBottomSheet(
+            state = state.stickerPickerState,
+            onDismiss = { state.eventSink(MessagesEvent.DismissStickerPicker) },
+        )
+    }
+
     ReactionSummaryView(state = state.reactionSummaryState)
     ReadReceiptBottomSheet(
         state = state.readReceiptBottomSheetState,
@@ -758,6 +766,10 @@ private fun MessagesViewComposerBottomSheetContents(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
+
+                        onStickerClick = if (ScPrefs.ENABLE_STICKER_PICKER.value()) { // SC
+                            { state.eventSink(MessagesEvent.ShowStickerPicker) }
+                        } else null,
                     )
                     composerEmojiPicker(emojiPickerHeight)
                 }

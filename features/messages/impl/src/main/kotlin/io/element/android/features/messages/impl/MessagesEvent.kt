@@ -24,6 +24,8 @@ sealed interface MessagesEvent {
     data object StopLiveLocationShare : MessagesEvent
     data object ShowLiveLocationShare : MessagesEvent
     data class MarkAsFullyReadAndExit(val scReadState: ScReadState) : MessagesEvent
+    data object ShowStickerPicker : MessagesEvent // SC
+    data object DismissStickerPicker : MessagesEvent // SC
     data object ConfirmSelectionAction : MessagesEvent
 }
 

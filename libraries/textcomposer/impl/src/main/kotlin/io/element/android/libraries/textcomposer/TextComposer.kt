@@ -136,6 +136,8 @@ fun TextComposer(
     showTextFormatting: Boolean = false,
     isInThreadTimeline: Boolean = false,
     onAddEmoji: (() -> Unit)? = null,
+
+    onStickerClick: (() -> Unit)? = null, // SC
 ) {
     val markdown = when (state) {
         is TextEditorState.Markdown -> state.state.text.value()
@@ -421,6 +423,7 @@ fun TextComposer(
             onDeleteVoiceMessage = onDeleteVoiceMessage,
             onVoiceRecorderEvent = onVoiceRecorderEvent,
             onResetComposerMode = onResetComposerMode,
+            onStickerClick = onStickerClick, // SC
         )
     }
 
@@ -472,6 +475,7 @@ private fun StandardLayout(
     onVoiceRecorderEvent: (VoiceMessageRecorderEvent) -> Unit,
     onResetComposerMode: () -> Unit,
     modifier: Modifier = Modifier,
+    onStickerClick: (() -> Unit)? = null, // SC
 ) {
     Column(modifier = modifier) {
         if (isRoomEncrypted == false && !ScPrefs.SC_TIMELINE_LAYOUT.value()) {
@@ -548,6 +552,22 @@ private fun StandardLayout(
                     }
                 } else {
                     movableVoiceRecording()
+                }
+            }
+            // SC: Sticker button - show when idle
+            if (onStickerClick != null && voiceMessageState is VoiceMessageState.Idle) {
+                IconButton(
+                    modifier = Modifier
+                        .padding(bottom = 5.dp, top = 5.dp, start = 6.dp)
+                        .size(48.dp),
+                    onClick = onStickerClick,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(24.dp),
+                        imageVector = CompoundIcons.Sticker(),
+                        contentDescription = null,
+                        tint = ElementTheme.colors.iconSecondary,
+                    )
                 }
             }
             // To avoid loosing keyboard focus, the IconButton has to be defined here and has to be always enabled.

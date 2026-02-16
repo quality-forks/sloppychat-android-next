@@ -17,7 +17,7 @@ data class TimelineItemTextContent(
     override val body: String,
     override val htmlDocument: Document?,
     override val formattedBody: CharSequence,
-    override val formattedBodySc: MatrixBodyParseResult,
+    override val formattedBodySc: MatrixBodyParseResult = MatrixBodyParseResult(body),
     override val isEdited: Boolean,
     override val messageTree: DocumentNode? = null,
 ) : TimelineItemTextBasedContent {

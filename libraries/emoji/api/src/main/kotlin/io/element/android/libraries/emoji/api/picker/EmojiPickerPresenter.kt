@@ -9,16 +9,14 @@ package io.element.android.libraries.emoji.api.picker
 
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.emoji.api.recentemojis.GetRecentEmojis
+import io.element.android.libraries.matrix.api.room.BaseRoom
 
 fun interface EmojiPickerPresenter : Presenter<EmojiPickerState> {
     /**
      * Creates a presenter for one picker instance.
      */
     fun interface Factory {
-        /**
-         * @param getRecentEmojis how the picker sources its recent tab; pass [io.element.android.libraries.emoji.api.recentemojis.EmptyGetRecentEmojis]
-         * for a picker that should have no recent tab at all.
-         */
-        fun create(getRecentEmojis: GetRecentEmojis): EmojiPickerPresenter
+        // SC: [room] scopes custom emoji packs to a room; pass null outside a room.
+        fun create(getRecentEmojis: GetRecentEmojis, room: BaseRoom?): EmojiPickerPresenter
     }
 }

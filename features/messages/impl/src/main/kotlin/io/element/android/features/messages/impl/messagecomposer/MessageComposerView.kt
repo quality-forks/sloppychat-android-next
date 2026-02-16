@@ -59,6 +59,7 @@ internal fun MessageComposerView(
     voiceMessageState: VoiceMessageComposerState,
     modifier: Modifier = Modifier,
     scBeforeSend: (() -> Unit)? = null,
+    onStickerClick: (() -> Unit)? = null, // SC
 ) {
     val view = LocalView.current
     fun sendMessage() {
@@ -145,6 +146,7 @@ internal fun MessageComposerView(
         onError = ::onError,
         onTyping = ::onTyping,
         onSelectRichContent = ::sendUri,
+        onStickerClick = onStickerClick, // SC
         onAddEmoji = onToggleEmojiPicker,
     )
 
