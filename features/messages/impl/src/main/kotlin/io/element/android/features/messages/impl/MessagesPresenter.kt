@@ -54,6 +54,7 @@ import io.element.android.features.messages.impl.timeline.components.receipt.bot
 import io.element.android.features.messages.impl.timeline.isSelectionModeActive
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.TimelineItemThreadInfo
+import io.element.android.features.messages.impl.timeline.model.event.TimelineItemEventContentWithAttachment
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemPollContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemStateContent
 import io.element.android.features.messages.impl.timeline.model.event.TimelineItemTextBasedContent
@@ -479,6 +480,7 @@ class MessagesPresenter(
             TimelineItemAction.CopyText -> handleCopyContents(targetEvent)
             TimelineItemAction.CopyCaption -> handleCopyCaption(targetEvent)
             TimelineItemAction.CopyLink -> handleCopyLink(targetEvent)
+            TimelineItemAction.CopyMxcLink -> handleCopyMxcLink(targetEvent) // SC
             TimelineItemAction.Redact -> handleActionRedact(targetEvent, redactEventAction)
             TimelineItemAction.Edit,
             TimelineItemAction.EditPoll -> handleActionEdit(targetEvent, composerState, enableTextFormatting)
@@ -741,6 +743,17 @@ class MessagesPresenter(
         }
         clipboardHelper.copyPlainText(content) {
             snackbarDispatcher.post(SnackbarMessage(R.string.screen_room_timeline_message_copied))
+        }
+    }
+
+    // SC: Copy MXC link for media messages
+    private fun handleCopyMxcLink(event: TimelineItem.Event) {
+        val mxcUrl = (event.content as? TimelineItemEventContentWithAttachment)?.mediaSource?.safeUrl ?: return
+        // Defensive: the action picker should already have hidden this for non-MXC sources,
+        // but never copy a local file:/// or content:// URI — that exposes device-local paths.
+        if (!mxcUrl.startsWith("mxc://")) return
+        clipboardHelper.copyPlainText(mxcUrl) {
+            snackbarDispatcher.post(SnackbarMessage(CommonStrings.common_copied_to_clipboard))
         }
     }
 
