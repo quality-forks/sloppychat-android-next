@@ -8,6 +8,13 @@
 
 package io.element.android.features.home.impl.roomlist
 
+import android.content.Context
+import chat.schildi.features.home.spaces.ScRoomListDataSource
+import chat.schildi.features.home.spaces.SpaceListDataSource
+import chat.schildi.features.home.spaces.SpaceUnreadCountsDataSource
+import chat.schildi.lib.preferences.PreviewScPreferencesStore
+import chat.schildi.lib.preferences.ScAppStateStore
+import chat.schildi.lib.preferences.ScPreferencesStore
 import com.google.common.truth.Truth.assertThat
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.features.announcement.api.Announcement
@@ -85,8 +92,9 @@ import io.element.android.tests.testutils.consumeItemsUntilPredicate
 import io.element.android.tests.testutils.lambda.assert
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
-import io.element.android.tests.testutils.test
 import io.element.android.tests.testutils.testCoroutineDispatchers
+import io.element.android.tests.testutils.testWithLifecycleOwner
+import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -114,7 +122,7 @@ class RoomListPresenterTest {
             client = matrixClient,
             seenInvitesStore = InMemorySeenInvitesStore(setOf(A_ROOM_ID, A_ROOM_ID_2, A_ROOM_ID_3)),
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = consumeItemsUntilPredicate { state -> state.contentState is RoomListContentState.Skeleton }.last()
             assertThat(initialState.contentState).isInstanceOf(RoomListContentState.Skeleton::class.java)
             roomList.loadingState.emit(RoomList.LoadingState.Loaded(1))
@@ -156,7 +164,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             client = FakeMatrixClient(roomListService = roomListService, encryptionService = encryptionService, syncService = syncService),
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val eventWithContentAsRooms = consumeItemsUntilPredicate {
                 it.contentState is RoomListContentState.Rooms
             }.last()
@@ -189,27 +197,41 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             client = matrixClient,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = consumeItemsUntilPredicate {
                 it.contentState is RoomListContentState.Rooms
             }.last()
             assertThat(initialState.contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
             encryptionService.emitRecoveryState(RecoveryState.INCOMPLETE)
-            val nextState = awaitItem()
+            val nextState = consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.RecoveryKeyConfirmation
+            }.last()
             assertThat(nextState.contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.RecoveryKeyConfirmation)
             // Also check other states
             encryptionService.emitRecoveryState(RecoveryState.DISABLED)
-            assertThat(awaitItem().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
+            assertThat(consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.SetUpRecovery
+            }.last().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
             encryptionService.emitRecoveryState(RecoveryState.WAITING_FOR_SYNC)
-            assertThat(awaitItem().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.None)
+            assertThat(consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.None
+            }.last().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.None)
             encryptionService.emitRecoveryState(RecoveryState.DISABLED)
-            assertThat(awaitItem().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
+            assertThat(consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.SetUpRecovery
+            }.last().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
             encryptionService.emitRecoveryState(RecoveryState.ENABLED)
-            assertThat(awaitItem().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.None)
+            assertThat(consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.None
+            }.last().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.None)
             encryptionService.emitRecoveryState(RecoveryState.DISABLED)
-            assertThat(awaitItem().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
+            assertThat(consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.SetUpRecovery
+            }.last().contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.SetUpRecovery)
             nextState.eventSink(RoomListEvent.DismissBanner)
-            val finalState = awaitItem()
+            val finalState = consumeItemsUntilPredicate {
+                it.contentAsRooms().securityBannerState == SecurityBannerState.None
+            }.last()
             assertThat(finalState.contentAsRooms().securityBannerState).isEqualTo(SecurityBannerState.None)
         }
     }
@@ -221,7 +243,7 @@ class RoomListPresenterTest {
             givenGetRoomResult(A_ROOM_ID, room)
         }
         val presenter = createRoomListPresenter(client = client)
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
 
             // Skip intermediate event for loading the value of the feature flags
@@ -268,7 +290,7 @@ class RoomListPresenterTest {
             givenGetRoomResult(A_ROOM_ID, room)
         }
         val presenter = createRoomListPresenter(client = client)
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
 
             // Skip intermediate event for loading the value of the feature flags
@@ -302,7 +324,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             leaveRoomState = aLeaveRoomState(eventSink = leaveRoomEventsRecorder),
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
             initialState.eventSink(RoomListEvent.LeaveRoom(A_ROOM_ID, needsConfirmation = true))
             leaveRoomEventsRecorder.assertSingle(LeaveRoomEvent.LeaveRoom(A_ROOM_ID, needsConfirmation = true))
@@ -321,7 +343,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             searchPresenter = searchPresenter,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
 
             // Skip intermediate event for loading the value of the feature flags
@@ -358,7 +380,7 @@ class RoomListPresenterTest {
             notificationSettingsService = notificationSettingsService
         )
         val presenter = createRoomListPresenter(client = matrixClient)
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             notificationSettingsService.setRoomNotificationMode(A_ROOM_ID, userDefinedMode)
             val updatedState = consumeItemsUntilPredicate { state ->
                 (state.contentState as? RoomListContentState.Rooms)?.summaries.orEmpty().any { summary ->
@@ -383,7 +405,7 @@ class RoomListPresenterTest {
             givenGetRoomResult(A_ROOM_ID, room)
         }
         val presenter = createRoomListPresenter(client = client, analyticsService = analyticsService)
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
             initialState.eventSink(RoomListEvent.SetRoomIsFavorite(A_ROOM_ID, true))
             setIsFavoriteResult.assertions().isCalledOnce().with(value(true))
@@ -415,7 +437,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             client = matrixClient,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             skipItems(1) // Skip initial state
             assertThat(awaitItem().contentState).isInstanceOf(RoomListContentState.Empty::class.java)
         }
@@ -459,7 +481,7 @@ class RoomListPresenterTest {
             notificationCleaner = notificationCleaner,
             markRoomAsRead = markRoomAsRead,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val initialState = awaitItem()
             allRooms.forEach {
                 assertThat(it.setUnreadFlagCalls).isEmpty()
@@ -515,7 +537,7 @@ class RoomListPresenterTest {
             client = matrixClient,
             acceptDeclineInvitePresenter = acceptDeclinePresenter
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val state = consumeItemsUntilPredicate {
                 it.contentState is RoomListContentState.Rooms
             }.last()
@@ -558,7 +580,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             client = matrixClient,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val state = consumeItemsUntilPredicate {
                 it.contentState is RoomListContentState.Rooms
             }.last()
@@ -568,6 +590,7 @@ class RoomListPresenterTest {
             state.eventSink(RoomListEvent.UpdateVisibleRange(IntRange(0, 11)))
             advanceTimeBy(1.seconds)
             subscribeToVisibleRoomsLambda.assertions().isCalledOnce()
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -592,7 +615,7 @@ class RoomListPresenterTest {
         val presenter = createRoomListPresenter(
             client = matrixClient,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             val state = consumeItemsUntilPredicate {
                 it.contentState is RoomListContentState.Rooms
             }.last()
@@ -605,6 +628,7 @@ class RoomListPresenterTest {
             state.eventSink(RoomListEvent.UpdateVisibleRange(IntRange(0, 11)))
             advanceTimeBy(1.seconds)
             subscribeToVisibleRoomsLambda.assertions().isCalledExactly(2)
+            cancelAndIgnoreRemainingEvents()
         }
     }
 
@@ -633,7 +657,7 @@ class RoomListPresenterTest {
             client = matrixClient,
             announcementService = announcementService,
         )
-        presenter.test {
+        presenter.testWithLifecycleOwner {
             assertThat(announcementService.announcementsToShowFlow().first()).isEmpty()
             skipItems(2) // Skip initial state and intermediate event for loading the value of the feature flags
             val state = awaitItem()
@@ -770,39 +794,63 @@ class RoomListPresenterTest {
         announcementService: AnnouncementService = FakeAnnouncementService(),
         featureFlagService: FeatureFlagService = FakeFeatureFlagService(),
         markRoomAsRead: MarkRoomAsRead? = null,
+        scPreferencesStore: ScPreferencesStore = PreviewScPreferencesStore,
+        scAppStateStore: ScAppStateStore = mockk(relaxed = true),
+        context: Context = mockk(relaxed = true),
         sessionStore: SessionStore = InMemorySessionStore(),
-    ) = RoomListPresenter(
-        client = client,
-        leaveRoomPresenter = { leaveRoomState },
-        roomListDataSource = RoomListDataSource(
+    ): RoomListPresenter {
+        val roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(
+            dateFormatter = dateFormatter,
+            roomLatestEventFormatter = roomLatestEventFormatter,
+        )
+        val roomListDataSource = RoomListDataSource(
             roomListService = client.roomListService,
-            roomListRoomSummaryFactory = aRoomListRoomSummaryFactory(
-                dateFormatter = dateFormatter,
-                roomLatestEventFormatter = roomLatestEventFormatter,
-            ),
+            roomListRoomSummaryFactory = roomListRoomSummaryFactory,
             coroutineDispatchers = testCoroutineDispatchers(),
             notificationSettingsService = client.notificationSettingsService,
+            scPreferencesStore = scPreferencesStore,
             sessionCoroutineScope = backgroundScope,
             dateTimeObserver = FakeDateTimeObserver(),
             analyticsService = FakeAnalyticsService(),
-        ),
-        searchPresenter = searchPresenter,
-        globalSearchPresenter = { aGlobalSearchState() },
-        filtersPresenter = filtersPresenter,
-        spaceFiltersPresenter = spaceFiltersPresenter,
-        analyticsService = analyticsService,
-        acceptDeclineInvitePresenter = acceptDeclineInvitePresenter,
-        fullScreenIntentPermissionsPresenter = { aFullScreenIntentPermissionsState() },
-        batteryOptimizationPresenter = { aBatteryOptimizationState() },
-        markRoomAsRead = markRoomAsRead ?: createTestMarkRoomAsRead(
+        )
+        val scRoomListDataSource = ScRoomListDataSource(scPreferencesStore, roomListDataSource, seenInvitesStore)
+        val spaceRoomListService = FakeRoomListService()
+        val spaceListDataSource = SpaceListDataSource(
             client = client,
-            notificationCleaner = notificationCleaner,
+            roomListService = spaceRoomListService,
+            roomListRoomSummaryFactory = roomListRoomSummaryFactory,
+            coroutineDispatchers = testCoroutineDispatchers(),
+            scPreferencesStore = scPreferencesStore,
+            context = context,
+        )
+        val spaceUnreadCountsDataSource = SpaceUnreadCountsDataSource(scPreferencesStore, spaceRoomListService, seenInvitesStore)
+        return RoomListPresenter(
+            client = client,
+            leaveRoomPresenter = { leaveRoomState },
+            scPreferencesStore = scPreferencesStore,
+            scAppStateStore = scAppStateStore,
+            scRoomListDataSource = scRoomListDataSource,
+            spaceListDataSource = spaceListDataSource,
+            spaceUnreadCountsDataSource = spaceUnreadCountsDataSource,
+            searchPresenter = searchPresenter,
+            globalSearchPresenter = { aGlobalSearchState() },
+            sessionStore = sessionStore,
+            filtersPresenter = filtersPresenter,
+            spaceFiltersPresenter = spaceFiltersPresenter,
+            analyticsService = analyticsService,
+            acceptDeclineInvitePresenter = acceptDeclineInvitePresenter,
+            fullScreenIntentPermissionsPresenter = { aFullScreenIntentPermissionsState() },
+            batteryOptimizationPresenter = { aBatteryOptimizationState() },
+            markRoomAsRead = markRoomAsRead ?: createTestMarkRoomAsRead(
+                client = client,
+                notificationCleaner = notificationCleaner,
+                sessionPreferencesStore = sessionPreferencesStore,
+            ),
             sessionPreferencesStore = sessionPreferencesStore,
-        ),
-        seenInvitesStore = seenInvitesStore,
-        announcementService = announcementService,
-        coldStartWatcher = FakeAnalyticsColdStartWatcher(),
-        featureFlagService = featureFlagService,
-        sessionStore = sessionStore,
-    )
+            seenInvitesStore = seenInvitesStore,
+            announcementService = announcementService,
+            coldStartWatcher = FakeAnalyticsColdStartWatcher(),
+            featureFlagService = featureFlagService,
+        )
+    }
 }

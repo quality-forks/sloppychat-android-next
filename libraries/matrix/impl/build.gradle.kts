@@ -28,12 +28,11 @@ val elementCallVersion: String = providers.gradleProperty("elementCallLocalVersi
 dependencies {
     implementation(projects.schildi.matrixsdk)
     implementation(projects.schildi.lib)
-    releaseImplementation(libs.matrix.sdk)
     if (file("${rootDir.path}/libraries/rustsdk/matrix-rust-sdk.aar").exists()) {
         println("\nNote: Using local binary of the Rust SDK.\n")
-        debugImplementation(projects.libraries.rustsdk)
+        implementation(projects.libraries.rustsdk)
     } else {
-        debugImplementation(libs.matrix.sdk)
+        implementation(libs.matrix.sdk)
     }
     // Disabled until the platform verifier is ready for production. See CertificateVerifier.kt.
 //    implementation(variantOf(libs.rustls.platform.verifier) { artifactType("aar") })

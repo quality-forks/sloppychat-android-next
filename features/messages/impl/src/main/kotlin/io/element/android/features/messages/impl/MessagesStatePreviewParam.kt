@@ -56,6 +56,7 @@ import io.element.android.libraries.matrix.api.user.DisplayedStatus
 import io.element.android.libraries.textcomposer.model.MessageComposerMode
 import io.element.android.libraries.textcomposer.model.aTextEditorStateMarkdown
 import io.element.android.libraries.textcomposer.model.aTextEditorStateRich
+import io.element.android.features.messages.impl.spacedrawer.ChatSpaceDrawerState
 import io.element.android.features.messages.impl.sticker.StickerPickerState
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
@@ -166,6 +167,13 @@ fun aMessagesState(
         isLoading = false,
         hadLoadErrors = false,
         eventSink = {},
+    ),
+    chatSpaceDrawerState = ChatSpaceDrawerState(
+        enabled = false,
+        pseudoSpaces = persistentListOf(),
+        realSpaces = persistentListOf(),
+        currentRoomId = RoomId("!id:domain"),
+        currentSpaceId = "",
     ),
     topBarSharedHistoryIcon = topBarSharedHistoryIcon,
     successorRoom = successorRoom,

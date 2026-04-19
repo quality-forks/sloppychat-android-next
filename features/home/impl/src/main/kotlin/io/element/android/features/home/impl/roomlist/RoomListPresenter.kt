@@ -32,7 +32,7 @@ import chat.schildi.features.home.spaces.resolveSelection
 import chat.schildi.lib.preferences.ScAppStateStore
 import chat.schildi.lib.preferences.ScPreferencesStore
 import chat.schildi.lib.preferences.ScPrefs
-import chat.schildi.lib.preferences.value
+import chat.schildi.lib.preferences.settingState
 import dev.zacsweers.metro.Inject
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.features.announcement.api.Announcement
@@ -65,7 +65,9 @@ import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
 import io.element.android.libraries.matrix.api.roomlist.RoomList
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
+import io.element.android.libraries.matrix.api.timeline.ReceiptType
 import io.element.android.libraries.matrix.ui.safety.rememberHideInvitesAvatar
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
 import io.element.android.libraries.push.api.battery.BatteryOptimizationState
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.services.analytics.api.AnalyticsService
@@ -80,6 +82,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.takeWhile
@@ -107,6 +110,7 @@ class RoomListPresenter(
     private val fullScreenIntentPermissionsPresenter: Presenter<FullScreenIntentPermissionsState>,
     private val batteryOptimizationPresenter: Presenter<BatteryOptimizationState>,
     private val markRoomAsRead: MarkRoomAsRead,
+    private val sessionPreferencesStore: SessionPreferencesStore,
     private val seenInvitesStore: SeenInvitesStore,
     private val announcementService: AnnouncementService,
     private val coldStartWatcher: AnalyticsColdStartWatcher,
@@ -287,10 +291,14 @@ class RoomListPresenter(
         showAllActivity: Boolean,
     ): RoomListContentState {
         // SC spaces
-        val spaceNavEnabled = ScPrefs.SPACE_NAV.value()
+        val spaceNavEnabled = scPreferencesStore.settingState(ScPrefs.SPACE_NAV).value
         val spaceSelectionHierarchy = if (spaceNavEnabled) scRoomListDataSource.spaceSelectionHierarchy.collectAsState().value else persistentListOf()
         val totalUnreadCounts = if (spaceNavEnabled) spaceUnreadCountsDataSource.totalUnreadCounts.collectAsState().value else null
-        val spacesList = if (spaceNavEnabled) spaceUnreadCountsDataSource.enrichedSpaces.collectAsState().value?.filterByUnread(spaceSelectionHierarchy) else null
+        val spacesList = if (spaceNavEnabled) {
+            spaceUnreadCountsDataSource.enrichedSpaces.collectAsState().value?.filterByUnread(spaceSelectionHierarchy, scPreferencesStore)
+        } else {
+            null
+        }
         // SC end
 
         val roomSummaries by produceState(initialValue = AsyncData.Loading()) {
