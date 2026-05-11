@@ -168,6 +168,9 @@ fun aMessagesState(
         hadLoadErrors = false,
         eventSink = {},
     ),
+    emojiPickerState = object : io.element.android.libraries.emoji.api.picker.EmojiPickerState {
+        override val isReady = false
+    },
     chatSpaceDrawerState = ChatSpaceDrawerState(
         enabled = false,
         pseudoSpaces = persistentListOf(),

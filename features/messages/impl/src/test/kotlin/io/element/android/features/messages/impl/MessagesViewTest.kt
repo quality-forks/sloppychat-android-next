@@ -853,6 +853,9 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
                         onSelectEmoji = { uniqueId, emoji ->
                             state.eventSink(MessagesEvent.ToggleReaction(emoji.unicode, uniqueId))
                         },
+                        onSelectCustomEmoji = { uniqueId, emoji -> // SC
+                            state.eventSink(MessagesEvent.ToggleReaction(emoji, uniqueId))
+                        },
                         emojiPickerRenderer = emojiPickerRenderer,
                     )
                 },
@@ -863,6 +866,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setMessagesView(
                         height = height,
                     )
                 },
+                emojiPickerRenderer = emojiPickerRenderer, // SC
                 onThreadsListClick = onThreadsListClicked,
             )
         }

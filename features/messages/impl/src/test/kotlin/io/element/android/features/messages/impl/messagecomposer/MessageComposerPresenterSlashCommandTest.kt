@@ -10,7 +10,12 @@
 package io.element.android.features.messages.impl.messagecomposer
 
 import android.net.Uri
+import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.ReceiveTurbine
+import chat.schildi.imagepacks.ImagePackRepository
+import chat.schildi.imagepacks.ImagePackService
+import chat.schildi.lib.preferences.PreviewScPreferencesStore
+import chat.schildi.lib.session.ScCustomEmojiDraftStore
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.location.api.LocationService
 import io.element.android.features.location.test.FakeLocationService
@@ -36,6 +41,7 @@ import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.test.A_FAILURE_REASON
 import io.element.android.libraries.matrix.test.A_MESSAGE
 import io.element.android.libraries.matrix.test.A_USER_ID
+import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkBuilder
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkParser
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
@@ -319,7 +325,11 @@ class MessageComposerPresenterSlashCommandTest {
         draftService = draftService,
         mentionSpanProvider = mentionSpanProvider,
         pillificationHelper = textPillificator,
-        suggestionsProcessor = SuggestionsProcessor(slashCommandService = slashCommandService),
+        suggestionsProcessor = SuggestionsProcessor(
+            slashCommandService = slashCommandService,
+            imagePackService = ImagePackService(ImagePackRepository(FakeMatrixClient())),
+            scPreferencesStore = PreviewScPreferencesStore,
+        ),
         mediaOptimizationConfigProvider = mediaOptimizationConfigProvider,
         notificationConversationService = notificationConversationService,
         slashCommandService = slashCommandService,
@@ -330,6 +340,7 @@ class MessageComposerPresenterSlashCommandTest {
         emojiPickerPresenterFactory = fakeEmojiPickerPresenterFactory(),
         getRecentEmojis = EmptyGetRecentEmojis,
         addRecentEmoji = { Result.success(Unit) },
+        customEmojiDraftStore = ScCustomEmojiDraftStore(ApplicationProvider.getApplicationContext()),
     ).apply {
         isTesting = true
         showTextFormatting = isRichTextEditorEnabled

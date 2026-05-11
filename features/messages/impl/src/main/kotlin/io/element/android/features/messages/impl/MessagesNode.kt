@@ -422,6 +422,7 @@ class MessagesNode(
                     )
                 },
                 composerEmojiPicker = composerEmojiPickerContent(state.composerState, emojiPickerRenderer),
+                emojiPickerRenderer = emojiPickerRenderer, // SC
                 onThreadsListClick = callback::navigateToThreadsList,
             )
             roomMemberModerationRenderer.Render(

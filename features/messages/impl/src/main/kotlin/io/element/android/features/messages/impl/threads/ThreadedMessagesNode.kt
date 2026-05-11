@@ -365,6 +365,7 @@ class ThreadedMessagesNode(
                         )
                     },
                     composerEmojiPicker = composerEmojiPickerContent(state.composerState, emojiPickerRenderer),
+                    emojiPickerRenderer = emojiPickerRenderer, // SC
                     onThreadsListClick = {},
                 )
 

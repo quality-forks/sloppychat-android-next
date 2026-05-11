@@ -89,6 +89,26 @@ class FakeTimeline(
         sendMessageLambda(body, htmlBody, intentionalMentions, msgType, asPlainText)
     }
 
+    override suspend fun sendNotice(
+        body: String,
+        htmlBody: String?,
+        plaintext: Boolean,
+        intentionalMentions: List<IntentionalMention>,
+        inReplyToEventId: EventId?,
+    ): Result<Unit> = simulateLongTask {
+        sendMessageLambda(body, htmlBody, intentionalMentions, MsgType.MSG_TYPE_TEXT, plaintext)
+    }
+
+    override suspend fun sendEmote(
+        body: String,
+        htmlBody: String?,
+        plaintext: Boolean,
+        intentionalMentions: List<IntentionalMention>,
+        inReplyToEventId: EventId?,
+    ): Result<Unit> = simulateLongTask {
+        sendMessageLambda(body, htmlBody, intentionalMentions, MsgType.MSG_TYPE_EMOTE, plaintext)
+    }
+
     var redactEventLambda: (eventOrTransactionId: EventOrTransactionId, reason: String?) -> Result<Unit> = { _, _ ->
         lambdaError()
     }
@@ -112,6 +132,7 @@ class FakeTimeline(
         body: String,
         htmlBody: String?,
         intentionalMentions: List<IntentionalMention>,
+        plaintext: Boolean,
     ): Result<Unit> = editMessageLambda(
         eventOrTransactionId,
         body,
@@ -131,6 +152,7 @@ class FakeTimeline(
         eventOrTransactionId: EventOrTransactionId,
         caption: String?,
         formattedCaption: String?,
+        plaintext: Boolean,
     ): Result<Unit> = editCaptionLambda(
         eventOrTransactionId,
         caption,
@@ -152,6 +174,7 @@ class FakeTimeline(
         repliedToEventId: EventId,
         body: String,
         htmlBody: String?,
+        plaintext: Boolean,
         intentionalMentions: List<IntentionalMention>,
         fromNotification: Boolean,
         msgType: MsgType,
@@ -181,6 +204,7 @@ class FakeTimeline(
         imageInfo: ImageInfo,
         caption: String?,
         formattedCaption: String?,
+        plaintext: Boolean,
         inReplyToEventId: EventId?,
     ): Result<MediaUploadHandler> = simulateLongTask {
         sendImageLambda(
@@ -210,6 +234,7 @@ class FakeTimeline(
         videoInfo: VideoInfo,
         caption: String?,
         formattedCaption: String?,
+        plaintext: Boolean,
         inReplyToEventId: EventId?,
     ): Result<MediaUploadHandler> = simulateLongTask {
         sendVideoLambda(
@@ -237,6 +262,7 @@ class FakeTimeline(
         audioInfo: AudioInfo,
         caption: String?,
         formattedCaption: String?,
+        plaintext: Boolean,
         inReplyToEventId: EventId?,
     ): Result<MediaUploadHandler> = simulateLongTask {
         sendAudioLambda(
@@ -263,6 +289,7 @@ class FakeTimeline(
         fileInfo: FileInfo,
         caption: String?,
         formattedCaption: String?,
+        plaintext: Boolean,
         inReplyToEventId: EventId?,
     ): Result<MediaUploadHandler> = simulateLongTask {
         sendFileLambda(
@@ -460,6 +487,7 @@ class FakeTimeline(
     // SC start
     override suspend fun forceSendReadReceipt(eventId: EventId, receiptType: ReceiptType) = sendReadReceipt(eventId, receiptType)
     override suspend fun fullyReadEventId() = null
+    override suspend fun latestUserReceiptEventId(userId: String) = null
     // SC end
 
     var loadReplyDetailsLambda: (eventId: EventId) -> InReplyTo = {

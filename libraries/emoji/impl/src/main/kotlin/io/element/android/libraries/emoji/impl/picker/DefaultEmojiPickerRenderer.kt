@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import dev.zacsweers.metro.ContributesBinding
 import io.element.android.emojibasebindings.Emoji
 import io.element.android.libraries.di.SessionScope
+import io.element.android.libraries.emoji.api.picker.CustomEmoji
 import io.element.android.libraries.emoji.api.picker.EmojiPickerRenderer
 import io.element.android.libraries.emoji.api.picker.EmojiPickerState
 import kotlinx.collections.immutable.ImmutableSet
@@ -25,6 +26,7 @@ class DefaultEmojiPickerRenderer : EmojiPickerRenderer {
         onSelectCustomEmoji: (String) -> Unit, // SC
         selectedEmojis: ImmutableSet<String>,
         modifier: Modifier,
+        onSelectCustomEmojiByIdentity: (CustomEmoji) -> Unit, // SC
         onBackspace: (() -> Unit)?,
         contentDescription: @Composable (Emoji, Boolean) -> String,
     ) {
@@ -33,6 +35,7 @@ class DefaultEmojiPickerRenderer : EmojiPickerRenderer {
                 state = state,
                 onSelectEmoji = onSelectEmoji,
                 onSelectCustomEmoji = onSelectCustomEmoji, // SC
+                onSelectCustomEmojiByIdentity = onSelectCustomEmojiByIdentity, // SC
                 selectedEmojis = selectedEmojis,
                 contentDescription = contentDescription,
                 modifier = modifier,
