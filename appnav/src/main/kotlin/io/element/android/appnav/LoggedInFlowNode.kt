@@ -317,11 +317,11 @@ class LoggedInFlowNode(
             }
             NavTarget.Home -> {
                 val callback = object : HomeEntryPoint.Callback {
-                    override fun navigateToRoom(roomId: RoomId, eventId: EventId?, joinedRoom: JoinedRoom?) {
+                    override fun navigateToRoom(roomId: RoomId, eventId: EventId?, joinedRoom: JoinedRoom?, peek: Boolean) { // SC peek
                         lifecycleScope.launch {
                             attachRoom(
                                 roomIdOrAlias = roomId.toRoomIdOrAlias(),
-                                initialElement = RoomNavigationTarget.Root(joinedRoom = joinedRoom, eventId = eventId),
+                                initialElement = RoomNavigationTarget.Root(joinedRoom = joinedRoom, eventId = eventId, peek = peek),
                                 clearBackstack = false,
                             )
                         }

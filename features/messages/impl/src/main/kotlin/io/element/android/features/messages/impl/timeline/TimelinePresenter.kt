@@ -8,6 +8,7 @@
 
 package io.element.android.features.messages.impl.timeline
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -21,9 +22,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
+import chat.schildi.lib.preferences.ScPreferencesStore
 import chat.schildi.lib.preferences.ScPrefs
-import chat.schildi.lib.preferences.state
+import chat.schildi.lib.preferences.settingState
 import chat.schildi.lib.preferences.value
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
@@ -56,6 +57,7 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
+import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
@@ -100,6 +102,7 @@ const val FOCUS_ON_PINNED_EVENT_DEBOUNCE_DURATION_IN_MILLIS = 200L
 class TimelinePresenter(
     timelineItemsFactoryCreator: TimelineItemsFactory.Creator,
     private val room: JoinedRoom,
+    @ApplicationContext private val context: Context,
     private val dispatchers: CoroutineDispatchers,
     @SessionCoroutineScope
     private val sessionCoroutineScope: CoroutineScope,
@@ -108,7 +111,9 @@ class TimelinePresenter(
     private val sendPollResponseAction: SendPollResponseAction,
     private val endPollAction: EndPollAction,
     private val sessionPreferencesStore: SessionPreferencesStore,
+    private val scPreferencesStore: ScPreferencesStore,
     @Assisted private val timelineController: TimelineController,
+    @Assisted private val isPeek: Boolean, // SC: when true, suppress read receipt + fully-read marker side effects
     private val timelineItemIndexer: TimelineItemIndexer = TimelineItemIndexer(),
     private val resolveVerifiedUserSendFailurePresenter: Presenter<ResolveVerifiedUserSendFailureState>,
     private val typingNotificationPresenter: Presenter<TypingNotificationState>,
@@ -128,7 +133,8 @@ class TimelinePresenter(
     interface Factory {
         fun create(
             timelineController: TimelineController,
-            navigator: MessagesNavigator
+            navigator: MessagesNavigator,
+            isPeek: Boolean, // SC
         ): TimelinePresenter
     }
     private val timelineItemsFactory: TimelineItemsFactory = timelineItemsFactoryCreator.create(
@@ -189,8 +195,7 @@ class TimelinePresenter(
         }.collectAsState(initial = true)
 
         // SC start
-        val syncReadReceiptAndMarker = ScPrefs.SYNC_READ_RECEIPT_AND_MARKER.state()
-        val context = LocalContext.current
+        val syncReadReceiptAndMarker = scPreferencesStore.settingState(ScPrefs.SYNC_READ_RECEIPT_AND_MARKER)
         // SC end
 
         val displayThreadSummaries by produceState(false) {
@@ -209,7 +214,9 @@ class TimelinePresenter(
             when (event) {
                 // SC start
                 is TimelineEvent.OnUnreadLineVisible -> timelineController.scReadState.sawUnreadLine.value = true
-                is TimelineEvent.ForceMarkAsRead -> forceSetReceipts(context, sessionCoroutineScope, room, timelineController.scReadState, sessionPreferencesStore)
+                is TimelineEvent.ForceMarkAsRead -> if (!isPeek) {
+                    forceSetReceipts(context, sessionCoroutineScope, room, timelineController.scReadState, sessionPreferencesStore)
+                }
                 // SC end
                 is TimelineEvent.LoadMore -> {
                     if (event.direction == Timeline.PaginationDirection.FORWARDS) {
@@ -229,6 +236,10 @@ class TimelinePresenter(
                     if (isLive) {
                         if (event.firstIndex == 0) {
                             newEventState.value = NewEventState.None
+                        }
+
+                        if (isPeek) { // SC: peek mode — never advance receipts/markers
+                            return
                         }
 
                         if (syncReadReceiptAndMarker.value) { // SC block

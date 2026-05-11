@@ -45,7 +45,7 @@ interface AppNavigationStateService {
      * @param owner identifies the navigation node reporting this.
      * @param roomId the room that was opened.
      */
-    fun onNavigateToRoom(owner: String, roomId: RoomId)
+    fun onNavigateToRoom(owner: String, roomId: RoomId, peek: Boolean = false) // SC peek
 
     /**
      * Pops back to the parent session; as with [onLeavingSession], a mismatched [owner] makes this a no-op.

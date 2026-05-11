@@ -107,7 +107,9 @@ class JoinedRoomLoadedFlowNode(
         lifecycle.subscribe(
             onCreate = {
                 Timber.v("OnCreate => ${inputs.room.roomId}")
-                appNavigationStateService.onNavigateToRoom(id, inputs.room.roomId)
+                // SC: forward peek so the push module can preserve notifications
+                val isPeek = (inputs.initialElement as? RoomNavigationTarget.Root)?.peek == true
+                appNavigationStateService.onNavigateToRoom(id, inputs.room.roomId, peek = isPeek)
                 activeRoomsHolder.addRoom(inputs.room)
                 sendMessageWatcher?.start()
                 fetchRoomMembers()
@@ -266,7 +268,7 @@ class JoinedRoomLoadedFlowNode(
             }
         }
         val params = MessagesEntryPoint.Params(
-            MessagesEntryPoint.InitialTarget.Messages(navTarget.focusedEventId)
+            MessagesEntryPoint.InitialTarget.Messages(navTarget.focusedEventId, peek = navTarget.peek) // SC
         )
         return messagesEntryPoint.createNode(
             parentNode = this,
@@ -283,6 +285,7 @@ class JoinedRoomLoadedFlowNode(
         @Parcelize
         data class Messages(
             val focusedEventId: EventId? = null,
+            val peek: Boolean = false, // SC
         ) : NavTarget
 
         @Parcelize
@@ -323,7 +326,7 @@ private fun initialElement(plugins: List<Plugin>): JoinedRoomLoadedFlowNode.NavT
             if (input.room.roomInfoFlow.value.isSpace) {
                 JoinedRoomLoadedFlowNode.NavTarget.Space
             } else {
-                JoinedRoomLoadedFlowNode.NavTarget.Messages(input.initialElement.eventId)
+                JoinedRoomLoadedFlowNode.NavTarget.Messages(input.initialElement.eventId, peek = input.initialElement.peek) // SC
             }
         }
         RoomNavigationTarget.Details -> JoinedRoomLoadedFlowNode.NavTarget.RoomDetails

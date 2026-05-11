@@ -82,4 +82,3 @@ private fun getLastEventIdBeforeOrAt(index: Int, items: ImmutableList<TimelineIt
 }
 
 internal fun Int.offsetForUnreadMarkerFocus(forUnreadMarker: Boolean) = if (forUnreadMarker) (this - 1).coerceAtLeast(0) else this
-

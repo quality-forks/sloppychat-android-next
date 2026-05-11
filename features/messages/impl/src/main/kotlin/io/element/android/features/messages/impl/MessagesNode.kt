@@ -121,12 +121,18 @@ class MessagesNode(
 ) : Node(buildContext, plugins = plugins), MessagesNavigator, TimelineSelectionOwner {
     data class Inputs(
         val focusedEventId: EventId?,
+        val peek: Boolean = false, // SC: parcelled — survives Appyx node reconstruction
     ) : NodeInputs
 
     private val inputs = inputs<Inputs>()
     private val callback: Callback = callback()
 
-    private val timelinePresenter = timelinePresenterFactory.create(timelineController = timelineController, this)
+    // SC: Peek now travels with the parcelled NavTarget chain, so reconstructions
+    //     (config change, restore from saved state) preserve it instead of consuming
+    //     a one-shot session flag.
+    private val isPeek: Boolean = inputs.peek
+
+    private val timelinePresenter = timelinePresenterFactory.create(timelineController = timelineController, this, isPeek)
     private val presenter = presenterFactory.create(
         navigator = this,
         composerPresenter = messageComposerPresenterFactory.create(timelineController, this, threadRoot = null),
@@ -136,6 +142,7 @@ class MessagesNode(
             timelineMode = timelineController.mainTimelineMode(),
         ),
         timelineController = timelineController,
+        isPeek = isPeek,
     )
 
     // SC: in order to avoid keeping too many url preview state holders around, limit this to a per-room-open scope

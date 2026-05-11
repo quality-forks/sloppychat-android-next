@@ -188,7 +188,8 @@ class HomeFlowNode(
 
             fun navigateToRoom(
                 roomId: RoomId,
-                eventId: EventId?,
+                peek: Boolean = false, // SC
+                eventId: EventId? = null,
             ) {
                 if (!loadingJoinedRoomJob.value.isUninitialized()) {
                     Timber.w("Already loading a room, ignoring navigateToRoom for $roomId")
@@ -201,7 +202,7 @@ class HomeFlowNode(
                     }.fold(
                         onSuccess = { joinedRoom ->
                             if (isActive) {
-                                callback.navigateToRoom(roomId = roomId, eventId = eventId, joinedRoom = joinedRoom)
+                                callback.navigateToRoom(roomId = roomId, eventId = eventId, joinedRoom = joinedRoom, peek = peek) // SC peek
                                 loadingJoinedRoomJob.value = AsyncData.Success(coroutineContext.job)
                                 // Wait a bit before resetting the state to avoid allowing to open several rooms
                                 delay(200.milliseconds)
@@ -211,7 +212,7 @@ class HomeFlowNode(
                         onFailure = {
                             // If the operation wasn't cancelled, navigate without the room, using the room id
                             if (it !is CancellationException) {
-                                callback.navigateToRoom(roomId = roomId, eventId = null, joinedRoom = null)
+                                callback.navigateToRoom(roomId = roomId, eventId = null, joinedRoom = null, peek = peek) // SC peek
                             }
                             loadingJoinedRoomJob.value = AsyncData.Failure(error = it, prevData = coroutineContext.job)
                             // Wait a bit before resetting the state to avoid allowing to open several rooms
@@ -226,7 +227,7 @@ class HomeFlowNode(
             HomeView(
                 homeState = state,
                 matrixClient = matrixClient, // SC
-                onRoomClick = ::navigateToRoom,
+                onRoomClick = { roomId, eventId -> navigateToRoom(roomId, eventId = eventId) },
                 onSettingsClick = callback::navigateToSettings,
                 onAddAccountClick = callback::navigateToAddAccount,
                 onSwitchToAccount = callback::navigateToSession,
@@ -235,6 +236,7 @@ class HomeFlowNode(
                 onSetUpRecoveryClick = callback::navigateToSetUpRecovery,
                 onConfirmRecoveryKeyClick = callback::navigateToEnterRecoveryKey,
                 onRoomSettingsClick = callback::navigateToRoomSettings,
+                onRoomPeekClick = { roomId -> navigateToRoom(roomId, peek = true) }, // SC
                 onMenuActionClick = { onMenuActionClick(activity, it) },
                 onReportRoomClick = ::navigateToReportRoom,
                 onDeclineInviteAndBlockUser = ::navigateToDeclineInviteAndBlockUser,

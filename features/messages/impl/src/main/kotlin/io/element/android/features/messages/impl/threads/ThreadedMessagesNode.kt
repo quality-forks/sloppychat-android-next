@@ -133,7 +133,7 @@ class ThreadedMessagesNode(
             scPreferencesStore = scPreferencesStore,
         )
         this.timelineController = timelineController
-        val timelinePresenter = timelinePresenterFactory.create(timelineController = timelineController, this)
+        val timelinePresenter = timelinePresenterFactory.create(timelineController = timelineController, this, isPeek = false)
         this.timelinePresenter = timelinePresenter
         return presenterFactory.create(
             navigator = this,
@@ -145,6 +145,7 @@ class ThreadedMessagesNode(
                 timelineMode = timelineController.mainTimelineMode(),
             ),
             timelineController = timelineController,
+            isPeek = false, // SC
         )
     }
 
