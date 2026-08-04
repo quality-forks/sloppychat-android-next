@@ -122,6 +122,7 @@ fun RoomDetailsView(
     onProfileClick: (UserId) -> Unit,
     onReportRoomClick: () -> Unit,
     modifier: Modifier = Modifier,
+    onScRoomProfileClick: () -> Unit = {}, // SC
     leaveRoomView: @Composable () -> Unit,
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
@@ -306,6 +307,9 @@ fun RoomDetailsView(
 
                 // SC: low priority item, if sorting by low priority is enabled
                 LowPriorityItem(state.isLowPriority) { state.eventSink(RoomDetailsEvent.SetLowPriority(it)) }
+
+                // SC: edit own per-room displayname and avatar
+                ScRoomProfileItem(onClick = onScRoomProfileClick)
 
                 if (state.canShowSecurityAndPrivacy && state.roomType is RoomDetailsType.Room) {
                     SecurityAndPrivacyItem(
