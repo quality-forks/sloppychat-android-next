@@ -32,6 +32,8 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatch
 import io.element.android.libraries.emoji.api.recentemojis.EmptyGetRecentEmojis
 import io.element.android.libraries.emoji.test.fakeEmojiPickerPresenterFactory
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
+import io.element.android.libraries.matrix.api.core.EventId
+import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
@@ -40,6 +42,7 @@ import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.test.A_FAILURE_REASON
 import io.element.android.libraries.matrix.test.A_MESSAGE
+import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_USER_ID
 import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.matrix.test.permalink.FakePermalinkBuilder
@@ -72,6 +75,7 @@ import io.element.android.services.analytics.test.FakeAnalyticsService
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
+import io.element.android.tests.testutils.robolectric.RobolectricTest
 import io.element.android.tests.testutils.test
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import io.mockk.mockk
@@ -82,7 +86,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
-class MessageComposerPresenterSlashCommandTest {
+class MessageComposerPresenterSlashCommandTest : RobolectricTest() {
     @get:Rule
     val warmUpRule = WarmUpRule()
 
@@ -170,6 +174,51 @@ class MessageComposerPresenterSlashCommandTest {
             advanceUntilIdle()
             navigateToDev.assertions().isCalledOnce()
             assertThat(initialState.textEditorState.messageHtml()).isEmpty()
+        }
+    }
+
+    @Test
+    fun `present - slash command navigation StartDm navigates to the dm room and resets composer`() = runTest {
+        val navigateToRoom = lambdaRecorder<RoomId, EventId?, List<String>, Unit> { _, _, _ -> }
+        val navigator = FakeMessagesNavigator(onNavigateToRoomLambda = navigateToRoom)
+        val presenter = createPresenter(
+            navigator = navigator,
+            slashCommandService = FakeSlashCommandService(
+                parseResult = { _, _, _ -> SlashCommand.StartDm(A_USER_ID) },
+                startDmResult = { _ -> Result.success(A_ROOM_ID) },
+            )
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.textEditorState.setHtml(A_MESSAGE)
+            initialState.eventSink(MessageComposerEvent.SendMessage)
+            val loadingState = awaitItem()
+            assertThat(loadingState.slashCommandAction.isLoading()).isTrue()
+            val resetState = awaitItem()
+            assertThat(resetState.slashCommandAction.isUninitialized()).isTrue()
+            navigateToRoom.assertions().isCalledOnce()
+            assertThat(resetState.textEditorState.messageHtml()).isEmpty()
+        }
+    }
+
+    @Test
+    fun `present - slash command navigation StartDm failure sets failure state`() = runTest {
+        val presenter = createPresenter(
+            slashCommandService = FakeSlashCommandService(
+                parseResult = { _, _, _ -> SlashCommand.StartDm(A_USER_ID) },
+                startDmResult = { _ -> Result.failure(RuntimeException("no dm for you")) },
+            )
+        )
+        presenter.test {
+            val initialState = awaitFirstItem()
+            initialState.textEditorState.setHtml(A_MESSAGE)
+            initialState.eventSink(MessageComposerEvent.SendMessage)
+            val loadingState = awaitItem()
+            assertThat(loadingState.slashCommandAction.isLoading()).isTrue()
+            val errorState = awaitItem()
+            assertThat(errorState.slashCommandAction.isFailure()).isTrue()
+            // Composer is not reset on failure
+            assertThat(errorState.textEditorState.messageHtml()).isEqualTo(A_MESSAGE)
         }
     }
 
