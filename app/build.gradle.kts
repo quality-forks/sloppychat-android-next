@@ -45,8 +45,8 @@ android {
     defaultConfig {
         // applicationId = BuildTimeConfig.APPLICATION_ID
         applicationId = "chat.sloppy.android"
-        versionCode = 1260
-        versionName = "0.11.8-ex_26_10_1"
+        versionCode = 1261
+        versionName = "0.11.10-ex_26_11_1"
         targetSdk = Versions.TARGET_SDK
 
         // Used by the activity-alias ".ElementLinksActivity" in AndroidManifest.xml
@@ -286,8 +286,8 @@ android {
         // Common upstream overrides across all sc variants - only one flavor for this dimension to ensure it's picked up!
         create("sc") {
             dimension = "package"
-            versionCode = 1260
-            versionName = "0.11.8-ex_26_10_1"
+            versionCode = 1261
+            versionName = "0.11.10-ex_26_11_1"
             isDefault = true
         }
         // SC variants for different release tracks. Cannot do actual release types for those since fdroid build tools always want `release` builds.
