@@ -13,9 +13,12 @@ import coil3.request.Options
 import io.element.android.libraries.designsystem.components.avatar.AvatarData
 import io.element.android.libraries.matrixmedia.api.MediaRequestData
 
-internal class AvatarDataKeyer : Keyer<AvatarData> {
+internal class AvatarDataKeyer(
+    private val animateAvatars: () -> Boolean = { false },
+) : Keyer<AvatarData> {
     override fun key(data: AvatarData, options: Options): String? {
-        return data.toMediaRequestData().toKey()
+        // The kind is part of the key, so toggling the setting cannot serve a cached still frame.
+        return data.toMediaRequestData(animated = animateAvatars()).toKey()
     }
 }
 
